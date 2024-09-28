@@ -1,0 +1,28 @@
+[Unit]
+Description=ipSync Service
+After=network.target
+
+[Service]
+# Path to the ipSync binary
+ExecStart=/usr/local/bin/ipSync
+
+# Run as root
+User=root
+Group=root
+
+# Working directory
+WorkingDirectory=/etc
+
+# Restart policy
+Restart=always
+RestartSec=0  # Restart immediately
+
+# Log output
+StandardOutput=append:/var/log/ipSync.log
+StandardError=append:/var/log/ipSync.log
+
+# No resource limits (CPU, Memory)
+LimitNOFILE=infinity
+
+[Install]
+WantedBy=multi-user.target
