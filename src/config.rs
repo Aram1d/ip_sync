@@ -1,3 +1,4 @@
+use crate::cli_args;
 use log::{error, info};
 use serde::Deserialize;
 use std::fs;
@@ -35,9 +36,12 @@ pub struct Config {
 static CONFIG: OnceLock<Config> = OnceLock::new();
 
 fn load_config() -> Config {
-    let config_content: String = fs::read_to_string("./config.toml")
-        .map_err(|_| error!("Unable to read general config file"))
-        .unwrap();
+    let config_path = cli_args::get_args().get_one::<String>("config");
+
+    let config_content: String =
+        fs::read_to_string(config_path.unwrap_or(&"/etc/ipsync.conf".to_string()))
+            .map_err(|_| error!("Unable to read general config file"))
+            .unwrap();
     let cfg = toml::de::from_str::<Config>(&config_content)
         .map_err(|e| error!("Unable to parse general config file: {} ", e.message()))
         .unwrap();
