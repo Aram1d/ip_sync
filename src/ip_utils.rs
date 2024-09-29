@@ -1,4 +1,6 @@
 use crate::config::get_config;
+use hickory_resolver::config::*;
+use hickory_resolver::TokioAsyncResolver;
 use lazy_regex::regex;
 use lazy_regex::Lazy;
 use std::error::Error;
@@ -7,24 +9,18 @@ use std::process::Command;
 static IP_REGEX: &Lazy<lazy_regex::Regex> =
     regex!(r"ExternalIPAddress = (\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})\n");
 
-pub fn get_domain_ip() -> Result<String, Box<dyn Error>> {
+pub async fn get_domain_ip() -> Result<String, Box<dyn Error>> {
     let domain = &get_config().general.domain;
+    let resolver = TokioAsyncResolver::tokio(ResolverConfig::default(), ResolverOpts::default());
 
-    let output = Command::new("dig")
-        .arg("+short")
-        .arg(domain)
-        .output()
-        .map_err(|e| format!("{}, is dig installed?", e))?;
+    let lookup = resolver.ipv4_lookup(domain).await?;
+    let ipv4 = lookup.iter().next();
 
-    if output.status.success() {
-        let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
-        if !stdout.is_empty() {
-            return Ok(stdout);
-        } else {
-            return Err("No IP address found.".into());
-        }
-    } else {
-        return Err(Box::from(format!("{:?}", output.status)));
+    match ipv4 {
+        Some(ip) => Ok(ip.to_string()),
+        None => Err(Box::from(format!(
+            "Could not resolve {domain} to IP address."
+        ))),
     }
 }
 
@@ -37,12 +33,8 @@ pub fn get_actual_ip() -> Result<String, Box<dyn Error>> {
     if output.status.success() {
         let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
         match IP_REGEX.captures(&stdout) {
-            Some(captures) => {
-                return Ok(captures.get(1).unwrap().as_str().to_string());
-            }
-            None => {
-                return Err(Box::from("No IP address found."));
-            }
+            Some(captures) => return Ok(captures.get(1).unwrap().as_str().to_string()),
+            None => return Err(Box::from("No IP address found.")),
         }
     } else {
         return Err(Box::from(format!("{:?}", output.status)));

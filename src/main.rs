@@ -20,8 +20,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     loop {
         match async {
-            let domain_ip =
-                get_domain_ip().map_err(utils::map_prefixed_err("Failed to get domain IP:"))?;
+            let domain_ip = get_domain_ip()
+                .await
+                .map_err(utils::map_prefixed_err("Failed to get domain IP:"))?;
 
             let actual_ip =
                 get_actual_ip().map_err(map_prefixed_err("Failed to get current IP:"))?;
