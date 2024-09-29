@@ -72,13 +72,18 @@ Run `ipsync -g > /etc/ipsync.conf` to create one from a model.
 fn load_config() -> Config {
     let config_path = cli_args::get_args().get_one::<String>("config");
 
-    let config_content: String =
-        fs::read_to_string(config_path.unwrap_or(&"/etc/ipsync.conf".to_string()))
-            .map_err(|_| error!("{MISSING_CONFIG}"))
-            .unwrap();
-    let cfg = toml::de::from_str::<Config>(&config_content)
-        .map_err(|e| error!("Unable to parse general config file: {} ", e.message()))
-        .unwrap();
+    let config_content: String = fs::read_to_string(
+        config_path.unwrap_or(&"/etc/ipsync.conf".to_string()),
+    )
+    .unwrap_or_else(|_| {
+        error!("{MISSING_CONFIG}");
+        std::process::exit(1)
+    });
+
+    let cfg = toml::de::from_str::<Config>(&config_content).unwrap_or_else(|e| {
+        error!("Unable to parse general config file: {} ", e.message());
+        std::process::exit(1)
+    });
 
     if let Err(errors) = cfg.validate() {
         for (_, nested_errors) in errors.errors() {
