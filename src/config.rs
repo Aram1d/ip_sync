@@ -15,8 +15,10 @@ pub struct GeneralConfig {
 
 #[derive(Debug, Validate, Deserialize)]
 pub struct AwsConfig {
-    //pub access_key: String,
-    //pub secret_key: String,
+    #[validate(length(min = 1, message = "aws.access_key is required"))]
+    pub access_key: String,
+    #[validate(length(min = 1, message = "aws.secret_key is required"))]
+    pub secret_key: String,
     #[validate(length(min = 1, message = "aws.hosted_zone_id is required"))]
     pub hosted_zone_id: String,
     #[validate(length(min = 1, message = "aws.record_name is required"))]
@@ -34,6 +36,12 @@ pub struct Config {
 }
 
 static CONFIG: OnceLock<Config> = OnceLock::new();
+
+static WELCOME_MSG: &'static str = r#"
+========================================
+     🖧    Welcome to IPSync!    🌐     
+========================================
+"#;
 
 fn load_config() -> Config {
     let config_path = cli_args::get_args().get_one::<String>("config");
@@ -63,11 +71,9 @@ fn load_config() -> Config {
         std::process::exit(1);
     }
 
-    info!("========================================");
-    info!("     🖧    Welcome to IPSync!    🌐     ");
-    info!("========================================");
+    info!("{}", WELCOME_MSG);
     info!(
-        "Loaded config: sync {} Ipv4 for hosted zone {}, {}s polling.",
+        "Config loaded: sync ipv4 for {}, hosted zone {}, {}s polling",
         cfg.general.domain, cfg.aws.hosted_zone_id, cfg.general.poll_interval
     );
     return cfg;

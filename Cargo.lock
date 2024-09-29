@@ -916,6 +916,7 @@ name = "ip_sync"
 version = "0.1.0"
 dependencies = [
  "aws-config",
+ "aws-credential-types",
  "aws-sdk-route53",
  "clap",
  "env_logger",

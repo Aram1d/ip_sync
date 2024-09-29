@@ -1,5 +1,6 @@
 use crate::config::get_config;
 use aws_config::BehaviorVersion;
+use aws_credential_types::Credentials;
 use aws_sdk_route53::types::{
     Change, ChangeAction, ChangeBatch, ResourceRecord, ResourceRecordSet, RrType,
 };
@@ -11,7 +12,15 @@ use tokio::sync::OnceCell;
 static CLIENT: OnceCell<Client> = OnceCell::const_new();
 
 async fn load_client() -> Client {
-    let aws_client_config = aws_config::defaults(BehaviorVersion::latest()).load().await;
+    let config = &get_config().aws;
+    let aws_client_config = aws_config::defaults(BehaviorVersion::latest())
+        .credentials_provider(Credentials::from_keys(
+            &config.access_key,
+            &config.secret_key,
+            None,
+        ))
+        .load()
+        .await;
     Client::new(&aws_client_config)
 }
 
