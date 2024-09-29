@@ -5,6 +5,7 @@ use aws_sdk_route53::types::{
     Change, ChangeAction, ChangeBatch, ResourceRecord, ResourceRecordSet, RrType,
 };
 use aws_sdk_route53::Client;
+use colored::*;
 use log::info;
 use std::error::Error;
 use tokio::sync::OnceCell;
@@ -89,7 +90,12 @@ pub async fn update_record(ipv4: &str) -> Result<(), Box<dyn Error>> {
         .await
     {
         Ok(_) => {
-            info!("Record updated to: {}", ipv4);
+            info!(
+                "Dns record {} on HZ {} updated to {}",
+                config.record_name.bold(),
+                config.hosted_zone_id.bold(),
+                ipv4.bold().green()
+            );
             Ok(())
         }
         Err(e) => Err(Box::new(e)),

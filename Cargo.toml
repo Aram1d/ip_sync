@@ -1,5 +1,5 @@
 [package]
-name = "ip_sync"
+name = "ipsync"
 version = "0.1.0"
 edition = "2021"
 
@@ -17,7 +17,8 @@ serde = { version = "1.0", features = ["derive"] }
 toml = "0.8.19"
 tokio = { version = "1", features = ["full"] }
 validator = {version = "0.18.0", features = ["derive"]}
+colored = "2.1.0"
 
 [[bin]]
-name = "ip_sync"
+name = "ipsync"
 

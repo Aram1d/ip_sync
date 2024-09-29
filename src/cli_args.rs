@@ -14,6 +14,13 @@ fn load_args() -> ArgMatches {
                 .long("config")
                 .help("Path of your config file, default /etc/ipsync.conf"),
         )
+        .arg(
+            Arg::new("gen-conf")
+                .short('g')
+                .long("generate-config")
+                .action(clap::ArgAction::SetTrue)
+                .help("Print a config sample"),
+        )
         .get_matches()
 }
 

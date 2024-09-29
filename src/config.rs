@@ -5,7 +5,7 @@ use std::fs;
 use std::sync::OnceLock;
 use validator::{Validate, ValidationErrorsKind};
 
-#[derive(Debug, Validate, Deserialize)]
+#[derive(Debug, Default, Deserialize, Validate)]
 pub struct GeneralConfig {
     #[validate(length(min = 1, message = "general.domain is required"))]
     pub domain: String,
@@ -13,7 +13,7 @@ pub struct GeneralConfig {
     pub poll_interval: u64,
 }
 
-#[derive(Debug, Validate, Deserialize)]
+#[derive(Debug, Default, Deserialize, Validate)]
 pub struct AwsConfig {
     #[validate(length(min = 1, message = "aws.access_key is required"))]
     pub access_key: String,
@@ -27,7 +27,7 @@ pub struct AwsConfig {
     pub record_ttl: i64,
 }
 
-#[derive(Debug, Validate, Deserialize)]
+#[derive(Debug, Default, Deserialize, Validate)]
 pub struct Config {
     #[validate(nested)]
     pub general: GeneralConfig,
@@ -39,8 +39,34 @@ static CONFIG: OnceLock<Config> = OnceLock::new();
 
 static WELCOME_MSG: &'static str = r#"
 ========================================
-    🌐    Welcome to Ip_Sync!    🖧    
+     🌐    Welcome to IpSync!    🖧    
 ========================================
+"#;
+
+pub static DEFAULT_CONFIG: &'static str = r#"
+[general]
+domain = "test.example.com"
+poll_interval = 60
+
+[aws]
+access_key = "your_access_key"
+secret_key = "your_secret_key"
+hosted_zone_id = "your_zone_id"
+record_name = "your_a_record_name"
+record_ttl = 60
+"#;
+
+pub static MISSING_CONFIG: &'static str = r#"
+Error: Configuration file not found.
+
+To proceed, you have the following options:
+1. Create a configuration file at the default location: `/etc/ipsync.conf`*.
+2. Specify a custom configuration path using the `-c` flag:
+   Example: `ipsync -c /your/custom/path.conf`.
+
+*You can generate a default configuration:
+Run `ipsync -g > /etc/ipsync.conf` to create one from a model.
+**Important**: After generating the file, open it and edit the settings to match your environment (e.g., domain, AWS credentials, etc.).
 "#;
 
 fn load_config() -> Config {
@@ -48,7 +74,7 @@ fn load_config() -> Config {
 
     let config_content: String =
         fs::read_to_string(config_path.unwrap_or(&"/etc/ipsync.conf".to_string()))
-            .map_err(|_| error!("Unable to read general config file"))
+            .map_err(|_| error!("{MISSING_CONFIG}"))
             .unwrap();
     let cfg = toml::de::from_str::<Config>(&config_content)
         .map_err(|e| error!("Unable to parse general config file: {} ", e.message()))
