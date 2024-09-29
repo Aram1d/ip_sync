@@ -39,7 +39,7 @@ static CONFIG: OnceLock<Config> = OnceLock::new();
 
 static WELCOME_MSG: &'static str = r#"
 ========================================
-     🖧    Welcome to IPSync!    🌐     
+    🌐    Welcome to Ip_Sync!    🖧    
 ========================================
 "#;
 
@@ -71,7 +71,7 @@ fn load_config() -> Config {
         std::process::exit(1);
     }
 
-    info!("{}", WELCOME_MSG);
+    info!("{WELCOME_MSG}");
     info!(
         "Config loaded: sync ipv4 for {}, hosted zone {}, {}s polling",
         cfg.general.domain, cfg.aws.hosted_zone_id, cfg.general.poll_interval

@@ -14,7 +14,7 @@ pub fn get_domain_ip() -> Result<String, Box<dyn Error>> {
         .arg("+short")
         .arg(domain)
         .output()
-        .map_err(|e| format!("Failed to execute dig: {}", e))?;
+        .map_err(|e| format!("{}, is dig installed?", e))?;
 
     if output.status.success() {
         let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
@@ -32,7 +32,7 @@ pub fn get_actual_ip() -> Result<String, Box<dyn Error>> {
     let output = Command::new("upnpc")
         .arg("-s")
         .output()
-        .map_err(|e| format!("Failed to execute upnpc: {}", e))?;
+        .map_err(|e| format!("{}, is upnpc installed?", e))?;
 
     if output.status.success() {
         let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
