@@ -1,13 +1,9 @@
 use crate::config::get_config;
 use hickory_resolver::config::*;
 use hickory_resolver::TokioAsyncResolver;
-use lazy_regex::regex;
-use lazy_regex::Lazy;
+use igd_next::search_gateway;
+use igd_next::SearchOptions;
 use std::error::Error;
-use std::process::Command;
-
-static IP_REGEX: &Lazy<lazy_regex::Regex> =
-    regex!(r"ExternalIPAddress = (\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})\n");
 
 pub async fn get_domain_ip() -> Result<String, Box<dyn Error>> {
     let domain = &get_config().general.domain;
@@ -25,18 +21,14 @@ pub async fn get_domain_ip() -> Result<String, Box<dyn Error>> {
 }
 
 pub fn get_actual_ip() -> Result<String, Box<dyn Error>> {
-    let output = Command::new("upnpc")
-        .arg("-s")
-        .output()
-        .map_err(|e| format!("{}, is upnpc installed?", e))?;
+    let gateway = search_gateway(SearchOptions::default())?;
+    let ip = gateway.get_external_ip();
 
-    if output.status.success() {
-        let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
-        match IP_REGEX.captures(&stdout) {
-            Some(captures) => return Ok(captures.get(1).unwrap().as_str().to_string()),
-            None => return Err(Box::from("No IP address found.")),
-        }
-    } else {
-        return Err(Box::from(format!("{:?}", output.status)));
+    match ip {
+        Ok(ip) => match ip.is_ipv4() {
+            true => Ok(ip.to_string()),
+            false => Err(Box::from("Ipv6 is not yet supported.")),
+        },
+        Err(e) => Err(Box::from(format!("{:?}", e))),
     }
 }
