@@ -24,58 +24,60 @@ async fn main() -> Result<(), Box<dyn Error>> {
         return Ok(());
     }
 
-    let config = &get_config().general;
+    let config = get_config();
     info!("Starting watching ip changes");
 
     loop {
-        match async {
-            let domain_ip = get_domain_ip()
-                .await
-                .map_err(utils::map_prefixed_err("Failed to get domain IP:"))?;
+        for dns_config in &config.dns {
+            match async {
+                let domain_ip = get_domain_ip(&dns_config.domain)
+                    .await
+                    .map_err(utils::map_prefixed_err("Failed to get domain IP:"))?;
 
-            let actual_ip =
-                get_actual_ip().map_err(map_prefixed_err("Failed to get current IP:"))?;
+                let actual_ip =
+                    get_actual_ip().map_err(map_prefixed_err("Failed to get current IP:"))?;
 
-            if actual_ip == domain_ip {
-                info!(
-                    "IP is sync ({}) for {}, skipping...",
-                    actual_ip.bold(),
-                    config.domain.bold()
-                );
-            } else {
-                warn!(
-                    "Actual ({}) differs from domain ({}), checking...",
-                    actual_ip.bold(),
-                    domain_ip.bold().red()
-                );
-
-                let dns_record_ip = route53::get_ip().await?;
-
-                if dns_record_ip == actual_ip {
+                if actual_ip == domain_ip {
                     info!(
-                        "IP is sync ({}) for {}, wait for propagation...",
+                        "IP is sync ({}) for {}, skipping...",
                         actual_ip.bold(),
-                        config.domain.bold()
+                        dns_config.domain.bold()
                     );
                 } else {
                     warn!(
-                        "DNS record for {} is stale ({}), updating to {}...",
-                        config.domain.bold(),
-                        dns_record_ip.bold().red(),
-                        actual_ip.bold().green(),
+                        "Actual ({}) differs from domain ({}), checking...",
+                        actual_ip.bold(),
+                        domain_ip.bold().red()
                     );
-                    route53::update_record(&actual_ip).await?;
+
+                    let dns_record_ip = route53::get_ip(dns_config).await?;
+
+                    if dns_record_ip == actual_ip {
+                        info!(
+                            "IP is sync ({}) for {}, wait for propagation...",
+                            actual_ip.bold(),
+                            dns_config.domain.bold()
+                        );
+                    } else {
+                        warn!(
+                            "DNS record for {} is stale ({}), updating to {}...",
+                            dns_config.domain.bold(),
+                            dns_record_ip.bold().red(),
+                            actual_ip.bold().green(),
+                        );
+                        route53::update_record(dns_config, &actual_ip).await?;
+                    }
+                }
+                Ok::<(), Box<dyn Error>>(())
+            }
+            .await
+            {
+                Ok(_) => {}
+                Err(e) => {
+                    error!("Error processing {}: {}", dns_config.domain, e);
                 }
             }
-            Ok::<(), Box<dyn Error>>(())
         }
-        .await
-        {
-            Ok(_) => {}
-            Err(e) => {
-                error!("{e}");
-            }
-        }
-        std::thread::sleep(std::time::Duration::from_secs(config.poll_interval));
+        std::thread::sleep(std::time::Duration::from_secs(config.general.poll_interval));
     }
 }

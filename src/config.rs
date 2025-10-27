@@ -1,30 +1,36 @@
 use crate::cli_args;
 use log::{error, info};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::fs;
 use std::sync::OnceLock;
 use validator::{Validate, ValidationErrorsKind};
 
 #[derive(Debug, Default, Deserialize, Validate)]
 pub struct GeneralConfig {
-    #[validate(length(min = 1, message = "general.domain is required"))]
-    pub domain: String,
     #[validate(range(min = 1, message = "general.poll_interval must be greater than 0"))]
     pub poll_interval: u64,
 }
 
-#[derive(Debug, Default, Deserialize, Validate)]
+#[derive(Debug, Clone, Deserialize, Serialize, Validate)]
 pub struct AwsConfig {
-    #[validate(length(min = 1, message = "aws.access_key is required"))]
+    #[validate(length(min = 1, message = "access_key is required"))]
     pub access_key: String,
-    #[validate(length(min = 1, message = "aws.secret_key is required"))]
+    #[validate(length(min = 1, message = "secret_key is required"))]
     pub secret_key: String,
-    #[validate(length(min = 1, message = "aws.hosted_zone_id is required"))]
+    #[validate(length(min = 1, message = "hosted_zone_id is required"))]
     pub hosted_zone_id: String,
-    #[validate(length(min = 1, message = "aws.record_name is required"))]
+    #[validate(length(min = 1, message = "record_name is required"))]
     pub record_name: String,
-    #[validate(range(min = 1, message = "aws.ttl must be greater than 0"))]
+    #[validate(range(min = 1, message = "ttl must be greater than 0"))]
     pub record_ttl: i64,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize, Validate)]
+pub struct DnsConfig {
+    #[validate(length(min = 1, message = "domain is required"))]
+    pub domain: String,
+    #[validate(nested)]
+    pub aws: AwsConfig,
 }
 
 #[derive(Debug, Default, Deserialize, Validate)]
@@ -32,7 +38,8 @@ pub struct Config {
     #[validate(nested)]
     pub general: GeneralConfig,
     #[validate(nested)]
-    pub aws: AwsConfig,
+    #[validate(length(min = 1, message = "At least one DNS configuration is required"))]
+    pub dns: Vec<DnsConfig>,
 }
 
 static CONFIG: OnceLock<Config> = OnceLock::new();
@@ -45,10 +52,22 @@ static WELCOME_MSG: &'static str = r#"
 
 pub static DEFAULT_CONFIG: &'static str = r#"
 [general]
-domain = "test.example.com"
 poll_interval = 60
 
-[aws]
+[[dns]]
+domain = "test.example.com"
+
+[dns.aws]
+access_key = "your_access_key"
+secret_key = "your_secret_key"
+hosted_zone_id = "your_zone_id"
+record_name = "your_a_record_name"
+record_ttl = 60
+
+[[dns]]
+domain = "another.example.com"
+
+[dns.aws]
 access_key = "your_access_key"
 secret_key = "your_secret_key"
 hosted_zone_id = "your_zone_id"
@@ -104,9 +123,16 @@ fn load_config() -> Config {
 
     info!("{WELCOME_MSG}");
     info!(
-        "Config loaded: sync ipv4 for {}, hosted zone {}, {}s polling",
-        cfg.general.domain, cfg.aws.hosted_zone_id, cfg.general.poll_interval
+        "Config loaded: {} DNS configuration(s), {}s polling",
+        cfg.dns.len(),
+        cfg.general.poll_interval
     );
+    for dns_cfg in &cfg.dns {
+        info!(
+            "  - Domain: {}, hosted zone: {}",
+            dns_cfg.domain, dns_cfg.aws.hosted_zone_id
+        );
+    }
     return cfg;
 }
 
