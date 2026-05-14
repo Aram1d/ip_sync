@@ -1,5 +1,6 @@
 use crate::config::DnsConfig;
 use aws_config::BehaviorVersion;
+use aws_config::Region;
 use aws_credential_types::Credentials;
 use aws_sdk_route53::types::{
     Change, ChangeAction, ChangeBatch, ResourceRecord, ResourceRecordSet, RrType,
@@ -28,6 +29,7 @@ async fn get_client(dns_config: &DnsConfig) -> Client {
     }
 
     let aws_client_config = aws_config::defaults(BehaviorVersion::latest())
+        .region(Region::new("us-east-1"))
         .credentials_provider(Credentials::from_keys(
             &dns_config.aws.access_key,
             &dns_config.aws.secret_key,

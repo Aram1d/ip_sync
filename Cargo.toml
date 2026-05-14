@@ -1,6 +1,6 @@
 [package]
 name = "ipsync"
-version = "0.1.0"
+version = "0.2.1"
 edition = "2021"
 
 [dependencies]
@@ -9,16 +9,22 @@ aws-config = { version = "1.1.7", features = ["behavior-version-latest"] }
 aws-sdk-route53 = "1.46.0"
 clap = "4.5.18"
 env_logger = "0.11.5"
-hickory-resolver = "0.24.1"
-igd-next = "0.15.0"
+hickory-resolver = "0.26.1"
+igd-next = "0.17.0"
 log = "0.4.22"
-regex = "1"
+regex = "1.12.3"
 serde = { version = "1.0", features = ["derive"] }
-toml = "0.8.19"
+toml = "1.1.2"
 tokio = { version = "1", features = ["full"] }
-validator = {version = "0.18.0", features = ["derive"]}
-colored = "2.1.0"
+validator = {version = "0.20.0", features = ["derive"]}
+colored = "3.1.1"
 
 [[bin]]
 name = "ipsync"
+
+[profile.release]
+lto = true
+codegen-units = 1
+strip = "symbols"
+panic = "abort"
 

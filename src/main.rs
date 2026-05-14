@@ -8,7 +8,7 @@ use colored::*;
 use config::get_config;
 use ip_utils::{get_actual_ip, get_domain_ip};
 use std::error::Error;
-use utils::map_prefixed_err;
+use utils::{format_error_chain, map_prefixed_err};
 
 use log::{error, info, warn};
 
@@ -74,7 +74,11 @@ async fn main() -> Result<(), Box<dyn Error>> {
             {
                 Ok(_) => {}
                 Err(e) => {
-                    error!("Error processing {}: {}", dns_config.domain, e);
+                    error!(
+                        "Error processing {}: {}",
+                        dns_config.domain,
+                        format_error_chain(e.as_ref())
+                    );
                 }
             }
         }

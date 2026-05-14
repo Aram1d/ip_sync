@@ -1,14 +1,18 @@
-use hickory_resolver::config::*;
-use hickory_resolver::TokioAsyncResolver;
+use hickory_resolver::proto::rr::RData;
+use hickory_resolver::Resolver;
 use igd_next::search_gateway;
 use igd_next::SearchOptions;
 use std::error::Error;
+use std::net::Ipv4Addr;
 
 pub async fn get_domain_ip(domain: &str) -> Result<String, Box<dyn Error>> {
-    let resolver = TokioAsyncResolver::tokio(ResolverConfig::default(), ResolverOpts::default());
+    let resolver = Resolver::builder_tokio()?.build()?;
 
     let lookup = resolver.ipv4_lookup(domain).await?;
-    let ipv4 = lookup.iter().next();
+    let ipv4 = lookup.answers().iter().find_map(|r| match &r.data {
+        RData::A(a) => Some(Ipv4Addr::from(*a)),
+        _ => None,
+    });
 
     match ipv4 {
         Some(ip) => Ok(ip.to_string()),
